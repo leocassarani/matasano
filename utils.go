@@ -11,6 +11,10 @@ func HexToBytes(str string) []byte {
 	return bytes
 }
 
+func BytesToHex(bytes []byte) string {
+	return hex.EncodeToString(bytes)
+}
+
 // Both buffers must have the same length.
 func FixedLengthXOR(a, b []byte) []byte {
 	length := len(a)
