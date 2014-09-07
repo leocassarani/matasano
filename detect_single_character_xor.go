@@ -25,7 +25,8 @@ func main() {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := HexToBytes(scanner.Text())
-		out, score := DetectSingleByteXOR(line)
+		out, _ := DetectSingleByteXOR(line)
+		score := ScoreEnglishPlaintext(out)
 		if score > maxScore {
 			maxScore = score
 			bestGuess = out

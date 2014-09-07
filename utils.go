@@ -2,17 +2,26 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"unicode"
 )
 
 func HexToBytes(str string) []byte {
-	bytes, _ := hex.DecodeString(str)
+	bytes, err := hex.DecodeString(str)
+	if err != nil {
+		panic(err)
+	}
 	return bytes
 }
 
 func BytesToHex(bytes []byte) string {
 	return hex.EncodeToString(bytes)
+}
+
+func Base64ToBytes(str string) []byte {
+	bytes, _ := base64.StdEncoding.DecodeString(str)
+	return bytes
 }
 
 // Both buffers must have the same length.
@@ -25,29 +34,68 @@ func FixedLengthXOR(a, b []byte) []byte {
 	return out
 }
 
-func DetectSingleByteXOR(in []byte) ([]byte, int) {
+func SingleByteXOR(plaintext []byte, key byte) []byte {
+	length := len(plaintext)
+	repeated := bytes.Repeat([]byte{key}, length)
+	return FixedLengthXOR(plaintext, repeated)
+}
+
+func DetectSingleByteXOR(in []byte) ([]byte, byte) {
 	var maxScore int
 	var bestGuess []byte
-	length := len(in)
+	var bestGuessKey byte
 
 	for b := byte(0); b < 0xff; b++ {
-		repeated := bytes.Repeat([]byte{b}, length)
-		out := FixedLengthXOR(in, repeated)
+		out := SingleByteXOR(in, b)
 
 		if score := ScoreEnglishPlaintext(out); score > maxScore {
 			maxScore = score
 			bestGuess = out
+			bestGuessKey = b
 		}
 	}
 
-	return bestGuess, maxScore
+	return bestGuess, bestGuessKey
 }
 
-func ScoreEnglishPlaintext(plaintext []byte) (score int) {
+var EnglishFrequency = map[rune]int{
+	'a': 8,
+	'b': 1,
+	'c': 3,
+	'd': 4,
+	'e': 12,
+	'f': 2,
+	'g': 2,
+	'h': 6,
+	'i': 7,
+	'j': 0,
+	'k': 1,
+	'l': 4,
+	'm': 2,
+	'n': 7,
+	'o': 8,
+	'p': 2,
+	'q': 0,
+	'r': 6,
+	's': 6,
+	't': 9,
+	'u': 3,
+	'v': 1,
+	'w': 2,
+	'x': 0,
+	'y': 2,
+	'z': 0,
+	' ': 10,
+}
+
+func ScoreEnglishPlaintext(plaintext []byte) (total int) {
 	for _, r := range string(plaintext) {
-		if unicode.IsLetter(r) || unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsDigit(r) {
-			score += 1
+		lower := unicode.ToLower(r)
+		if score, ok := EnglishFrequency[lower]; ok {
+			// Add one because the fact that we matched one
+			// of the characters constitutes "success".
+			total += score + 1
 		}
 	}
-	return score
+	return total
 }

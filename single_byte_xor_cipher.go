@@ -12,6 +12,6 @@ func main() {
 	}
 
 	input := HexToBytes(os.Args[1])
-	output, _ := DetectSingleByteXOR(input)
+	output := DetectSingleByteXOR(input)
 	fmt.Println(string(output))
 }
